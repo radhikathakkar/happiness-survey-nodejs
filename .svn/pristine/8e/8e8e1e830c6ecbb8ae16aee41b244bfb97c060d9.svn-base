@@ -1,0 +1,118 @@
+const express = require('express');
+const router = express.Router();
+var ActiveDirectory = require('activedirectory');
+var jwt = require('jsonwebtoken');
+const sql = require('mssql');
+const conn = require('../connection');
+
+var config = {
+    url: 'LDAP://172.16.7.1://rishabh.com',
+    baseDN: 'dc=rishabh,dc=com',
+    username: 'sandeep.prajapati@rishabh.com',
+    password: 'India@141210',
+    attributes: {
+        user: ['cn', 'sn', 'givenName', 'department', 'dn', 'userPrincipalName', 'title']
+    }
+}
+
+var ad = new ActiveDirectory(config);
+// var sAMAccountName = 'Parth.Soni';
+var userPrincipalName = 'parth.soni@rishabh.com';
+var dn = 'CN=Soni\\, Parth,OU=Users,DC=rishabh,DC=com';
+
+module.exports = {
+
+    query: async (req, res, next) => {
+        var query = req.body.query;
+        var newQuery = `cn=*${query}*`;
+        ad.findUsers(newQuery, true, function (err, users) {
+            if (err) {
+                console.log('ERROR: ' + JSON.stringify(err));
+                return;
+            }
+            if ((!users) || (users.length == 0)) console.log('No users found.');
+            else {
+                console.log(users)
+                res.json(users);
+            }
+        });
+    },
+    group: async (req, res, next) => {
+
+        var groupName = req.body.groupName;
+
+        ad.getUsersForGroup(groupName, function (err, users) {
+            if (err) {
+                console.log('ERROR: ' + JSON.stringify(err));
+                return;
+            }
+            if (!users) console.log('Group: ' + groupName + ' not found.');
+            else {
+                console.log('Members: ' + (users || []).length);
+                res.json(users);
+            }
+        });
+    },
+
+    user: async (req, res, next) => {
+        var sAMAccountName = req.body.sAMAccountName;
+        ad.findUser(sAMAccountName, function (err, user) {
+            if (err) {
+                console.log('ERROR: ' + JSON.stringify(err));
+                return;
+            }
+            if (!user) console.log('User: ' + sAMAccountName + ' not found.');
+            else { res.send(user), console.log(user) };
+        });
+    },
+    auth: async (req, res, next) => {
+        let username = req.body.username;
+        let password = req.body.password;
+
+        ad.authenticate(username, password, function (err, auth) {
+            if (err) {
+                console.log('ERROR: ' + JSON.stringify(err));
+                return;
+            }
+            if (auth) {
+                let payload = { subject: username }
+                let token = jwt.sign(payload, 'secretKey')
+                console.log('Authenticated!');
+                console.log(auth)
+                var users = username.split("@")[0];
+                ad.findUser(users, (err, user) => {
+                    var DomainId = users;
+                    new sql.Request(conn)
+                        .input("param", sql.VarChar, DomainId)
+                        .query("select * from dbo.vwEmployeeDetailsWithAARA where AAEmailID = (select RishabhId from dbo.vwEmployeeDetailsWithAARA where DomainId = @param)")
+                        .then((data) => {
+                            if (data == null || data.length == 0) {
+                                return res.status(500).send();
+                            }
+                            if (data.rowsAffected == 0 || data.rowsAffected == null) {
+                                console.log('not ra');
+                                return res.status(200).send({ auth, token, username, boolean: false, user });
+                            } else {
+                                new sql.Request(conn)
+                                    .input("param", sql.VarChar, DomainId)
+                                    .query("select RishabhId from dbo.vwEmployeeDetailsWithAARA where DomainId = @param")
+                                    .then((data) => {
+                                        console.log(data.recordset[0].RishabhId);
+                                    })
+                                    .catch((error) => {
+                                        console.dir(error);
+                                    });
+                                return res.status(200).send({ auth, token, username, boolean: true, user });
+                            }
+                        })
+                        .catch((error) => {
+                            console.dir(error);
+                        });           
+                })
+            }
+            else {
+                console.log('Authentication failed!');
+            }
+        });
+    }
+}

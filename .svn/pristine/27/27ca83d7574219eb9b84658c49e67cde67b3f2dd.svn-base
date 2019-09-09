@@ -1,0 +1,213 @@
+const Survey = require('../models/survey');
+const User = require('../models/users');
+var jwt = require('jsonwebtoken');
+const chalk = require('chalk');
+const log = console.log;
+const conn = require('../connection');
+var sql = require("mssql");
+var _ = require('lodash');
+
+var dbConfig = {
+    user: "rspl_hr",
+    password: "rspl123#",
+    server: "RSDS004\\SS2008",
+    database: "RSPLPortal_QA_new"
+};
+module.exports = {
+
+    index: async (req, res, next) => {
+        const survey = await Survey.find({});
+        res.status(200).json(survey)
+    },
+    newSurvey: async (req, res, next) => {
+        const newSurvey = new Survey(req.body);
+        const survey = await newSurvey.save();
+        res.status(200).json(survey);
+    },
+    getSurvey: async (req, res, next) => {
+
+        console.log('req.params', req.params);
+        const { userId } = req.params;
+        const survey = await Survey.findById(userId);
+        res.status(200).json(survey);
+    },
+    replaceSurvey: async (req, res, next) => {
+        const { userId } = req.params;
+        const newSurvey = req.body;
+
+        const result = await Survey.findByIdAndUpdate(userId, newSurvey);
+        console.log(result);
+        res.status(200).json(result);
+    },
+    updateSurvey: async (req, res, next) => {
+        const { userId } = req.params;
+        const newUser = req.body;
+
+        const result = await Survey.findByIdAndUpdate(userId, newUser);
+        res.status(200).json({ success: true });
+    },
+    getUser: async (req, res, next) => {
+        const userArray  = req.body.user;
+        console.log(userArray)
+        const user = await User.find({_id: userArray });
+ 
+        res.status(200).json(user);
+    },
+    getSurveyQue: async (req, res, next) => {
+        const { userId } = req.params;
+        const survey = await Survey.findById(userId);
+        console.log('que', survey.questions);
+        res.status(200).json(survey.questions);
+    },
+    newSurveyUser: async (req, res, next) => {
+        const { userId } = req.params;
+        //new User
+        const newUser = new User(req.body);
+        // console.log('newCar', newUser)
+        // get Survey
+        const survey = await Survey.findById(userId);
+        //assign user as survey's user
+        newUser.survey = survey;
+        //save the user
+        console.log(newUser)
+        // await newUser.save();
+        // //Add User to survey's assignees array 
+        survey.assignees.push(newUser);
+        //save user
+        // survey.save();
+        res.status(201).json(newUser);
+    },
+    newSurveyQue: async (req, res, next) => {
+        const { userId } = req.params;
+        newQue = req.body;
+        const survey = await Survey.findById(userId);
+        survey.questions.push(newQue);
+        console.log(newQue)
+        await survey.save();
+        res.status(201).json(survey);
+    },
+    newSurveyUserRes: async (req, res, next) => {
+        const { surveyId } = req.params;
+        const { userId } = req.params;
+        newRes = req.body;
+        const survey = await Survey.findById(surveyId);
+
+        survey.assignees.id(userId).response = req.body.response;
+        survey.save();
+        // const assigneeIndex = survey.assignees.findIndex(user => user._id === userid);
+        // console.log(assigneeIndex);
+        // // survey.assignees.response.push(newRes);
+        console.log(survey);
+        // await survey.save();
+
+    },
+
+    findUsersSurvey: async (req, res, next) => {
+        var id = req.body.id;
+        // connect to your database
+        const { userId } = req.params;
+        Survey.find({ 'assignees._id': userId }, async function (err, result) {
+            if (err) console.log(err)
+            else {
+                res.send(result)
+            }
+        })
+    },
+    findUsersfilledSurvey: async (req, res, next) => {
+        var id = req.body.id;
+        // connect to your database
+        const { userId } = req.params;
+        Survey.find({ 'assignees._id': userId }, async function (err, result) {
+            if (err) console.log(err)
+            else {
+                let assignees = result.map(x => x.assignees.find(x =>x._id ==userId));
+                let newSurvey = [];
+                // console.log(assignees.map(x=> x.response))
+                for (var i = 0; i <= result.length -1; i++) {
+                //     console.log(i)
+                    if (assignees[i].response.length === 0 ){
+                    
+                        newSurvey.push(result[i]);
+                            console.log(newSurvey);
+                        } else {
+                            console.log("Object not found.");
+                        }
+                }
+                res.send(newSurvey)
+            }
+                // console.log(assignees[0].find(x =>x._id =='5d47bc0208b7451148ee7de0'))
+                // for(var i=0; i<=assignees.length; i++ ){
+                //     console.log(assignees[i].find(id => ['id']==='5d47bc0208b7451148ee7de0'))
+                // }
+
+                // res.send(result.assignees.id(req.params));
+            
+            // for(var i ; i<=)
+        })
+    },
+    getUsersSurvey: async (req, res, next) => {
+        var id = req.body.id;
+        // connect to your database
+        // const { userId } = req.params;
+        Survey.find({ 'ownerID': { $regex: `^${id}` } }, async function (err, result) {
+            if (err) console.log(err)
+            else
+                res.send(result);
+            // for(var i ; i<=)
+        })
+    },
+    findUser: async (req, res, next) => {
+        var id = req.body.id;
+        const { surveyId } = req.params;
+        // connect to your database
+        //query to the database and get the records
+        new sql.Request(conn)
+            .query(`SELECT [FirstName],[LastName],[RishabhId]
+                 FROM [RSPLPortal_QA_new].[dbo].[vwEmployeeDetailsWithAARA] where RishabhId like  '${id}%'`
+                , async function (err, recordset) {
+                    if (err) console.log(err)
+                    // sql.close();
+                    // res.send(recordset)
+                    let RishabhId = recordset.recordset[0].RishabhId;
+
+                    let payload = { subject: RishabhId }
+                    var token = jwt.sign(payload, 'secretKey')
+
+                    User.find({ RishabhId: RishabhId }, async function (err, result) {
+                        if (result.length == 0) {
+                            console.log('null')
+                            newUser = recordset.recordset[0];
+                            console.log(newUser)
+                            updateUser = new User(newUser);
+                            console.log(updateUser)
+                            updateUser.save()
+
+                            console.log(token)
+                            updateUser.token = token
+                            const survey = await Survey.findById(surveyId).populate('assignees')
+                            // survey.assignees.push(updateUser);
+                            // await survey.save();
+                            res.send(survey)
+                        }
+                        else {
+
+                            // User({_id:result[0]._id }, (err,doc)=>{
+                            //     if(err) console.log(err)
+                            //     else console.log(doc)
+                            // })
+                            res.send(result);
+                        }
+                    })
+                })
+    },
+    getUsersSurveyRes: async (req, res) => {
+        const { surveyId } = req.params;
+        const { userId } = req.params;
+
+        const survey = await Survey.findById(surveyId);
+
+        res.json(survey.assignees.id(userId));
+        // survey.assignees.id(userId).response = req.body.response;
+        // survey.save();
+    }
+};

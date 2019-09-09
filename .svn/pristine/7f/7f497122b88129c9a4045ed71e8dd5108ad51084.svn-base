@@ -1,0 +1,93 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const conn = require('../connection');
+const sql = require('mssql');
+var request = new sql.Request(conn);
+const Users = require('../models/users');
+const userrouter = express.Router();
+userrouter.use(bodyParser.json());
+
+userrouter.get('/data', (req, res, next) => {
+    request.query("SELECT * FROM dbo.vwEmployeeDetailsWithAARA", (err, record) => {
+        if (err) {
+            console.log(err);
+            return res.status(500).send();
+        } else {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(record);
+        }
+    })
+});
+
+
+// perform login authentication for RA
+userrouter.get('/ra/:DomainId', (req, res, next) => {
+    var domainId = req.params.DomainId;
+    new sql.Request(conn)
+        .input("param", sql.VarChar, domainId)
+        .query("select * from dbo.vwEmployeeDetailsWithAARA where AAEmailID = (select RishabhId from dbo.vwEmployeeDetailsWithAARA where DomainId = @param)")
+        .then((data) => {
+
+            if (data == null || data.length == 0) {
+                return res.status(500).send();
+            }
+            if (data.rowsAffected == 0 || data.rowsAffected == null) {
+                //console.log(domainId)
+                return res.status(404).send();
+            }
+            else {
+                new sql.Request(conn)
+                    .input("param", sql.VarChar, domainId)
+                    .query("select RishabhId from dbo.vwEmployeeDetailsWithAARA where DomainId = @param")
+                    .then((data) => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(data.recordset[0].RishabhId);
+                    })
+                    .catch((error) => {
+                        console.dir(error);
+                    });
+
+            }
+        })
+        .catch(function (error) {
+            console.dir(error);
+        });
+});
+
+
+//To get user's belongs to RA
+userrouter.get('/user/:DomainId', (req, res) => {
+    var name = req.params.DomainId;
+    new sql.Request(conn)
+        .input("param", sql.VarChar, name)
+        .query("SELECT * FROM dbo.vwEmployeeDetailsWithAARA WHERE AAID COLLATE DATABASE_DEFAULT = (SELECT EmpCode COLLATE DATABASE_DEFAULT FROM dbo.vwEmployeeDetailsWithAARA WHERE DomainId=@param) ")
+        .then((data) => {
+            if (data == null || data.length === 0) {
+                return res.status(500).send();
+            }
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(data);
+        })
+        .catch(function (error) {
+            console.dir(error);
+        });
+});
+
+userrouter.post('/get-assignees', (req,res,next) => {
+    userId =  req.body.userId;
+    Users.find({ _id: userId })
+    .then((user, err) => {
+        if (user) {
+            return res.send(user.map(user => (user.FirstName + " " + user.LastName)));
+        } else {
+            return res.send(err);
+        }
+    })
+})
+
+// get user's RishabhId id which are selected by RA
+
+module.exports = userrouter;

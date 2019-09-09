@@ -1,0 +1,144 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const Survey = require('../models/survey');
+const Users = require('../models/users');
+const surveyRouter = express.Router();
+surveyRouter.use(bodyParser.json());
+
+// To perform operations on Survey 
+surveyRouter.route('/')
+    .get((req, res, next) => {
+        Survey.find({})
+            .then((survey) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .post((req, res, next) => {
+        let survey = new Survey({
+            ownerID: req.body.ownerID,
+            title: req.body.title,
+            questions: req.body.questions,
+            assignees: req.body.assignees,
+        });
+        survey.save()
+            .then((survey) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .delete((req, res, next) => {
+        Survey.deleteOne({})
+            .then((resp) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(resp);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    });
+
+// To perform operations on Survey by Id
+surveyRouter.route('/:surveyId')
+    .get((req, res, next) => {
+        Survey.findById({ _id: req.params.surveyId }, (err, survey) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }
+        })
+    })
+    .put((req, res, next) => {
+        Survey.findByIdAndUpdate(req.params.surveyId, {
+            $set: req.body
+        }, { new: true })
+            .then((survey) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .delete((req, res, next) => {
+        Survey.findByIdAndRemove(req.params.surveyId)
+            .then((resp) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(resp);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    });
+
+// To perform operations on questions of Survey by SurveyId
+surveyRouter.route('/:surveyId/assignees')
+    .get((req, res, next) => {
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null) {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(survey.assignees);
+                } else {
+                    err = new Error('Question ' + req.params.surveyId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    });
+
+surveyRouter.post('/username', (req, res, next) => {
+    userId= req.body.userId;
+    Users.find({ _id: userId})
+        .then((user) => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(user);
+        }, (err) => next(err))
+        .catch((err) => next(err));
+});
+
+surveyRouter.post('/RishabhId', (req, res, next) => {
+    RishabhId= req.body.RishabhId;
+    Users.find({ RishabhId: RishabhId})
+        .then((user) => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(user.map(user => user));
+        }, (err) => next(err))
+        .catch((err) => next(err));
+});
+
+surveyRouter.get('/data/:ownerID', (req, res, next) => {
+    Survey.find({ ownerID: req.params.ownerID })
+        .then((surveys) => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(surveys);
+        }, (err) => next(err))
+        .catch((err) => next(err));
+});
+
+surveyRouter.post('/postuserdata', (req, res, next) => {
+    rishabhId = req.body.RishabhId
+    console.log(rishabhId)
+    Users.find({ RishabhId: rishabhId })
+        .then((user, err) => {
+            if (user) {
+                console.log(user);
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(user);
+            } else {
+                return res.send(err);
+            }
+        })
+});
+
+module.exports = surveyRouter;

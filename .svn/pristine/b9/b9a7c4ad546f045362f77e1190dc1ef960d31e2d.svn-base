@@ -1,0 +1,371 @@
+const express = require('express');
+const bodyParser = require('body-parser');
+const Survey = require('../models/survey');
+const Users = require('../models/users');
+var mongoose = require('mongoose');
+var db;
+const surveyRouter = express.Router();
+surveyRouter.use(bodyParser.json());
+
+// To perform operations on Survey 
+surveyRouter.route('/')
+    .get((req, res, next) => {
+        Survey.find({})
+            .then((survey) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .post((req, res, next) => {
+        let survey = new Survey({
+            ownerID: req.body.ownerID,
+            title: req.body.title,
+            questions: req.body.questions,
+            assignees: req.body.assignees,
+        });
+
+        // console.log(survey)
+        survey.save()
+            .then((survey) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .put((req, res, next) => {
+        res.statusCode = 403;
+        res.end('PUT operation not supported on /survey');
+    })
+    .delete((req, res, next) => {
+        Survey.deleteOne({})
+            .then((resp) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(resp);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    });
+
+// To perform operations on Survey by Id
+surveyRouter.route('/:surveyId')
+    .get((req, res, next) => {
+        Survey.findById({ _id: req.params.surveyId }, (err, survey) => {
+            if (err) {
+                res.json(err);
+            } else {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }
+        })
+    })
+    .put((req, res, next) => {
+        Survey.findByIdAndUpdate(req.params.surveyId, {
+            $set: req.body
+        }, { new: true })
+            .then((survey) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(survey);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .delete((req, res, next) => {
+        Survey.findByIdAndRemove(req.params.surveyId)
+            .then((resp) => {
+                res.statusCode = 200;
+                res.setHeader('Content-Type', 'application/json');
+                res.json(resp);
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    });
+
+
+// To perform operations on questions of Survey by SurveyId
+surveyRouter.route('/:surveyId/questions')
+    .get((req, res, next) => {
+
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null) {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(survey.questions);
+                }
+                else {
+                    err = new Error('Question ' + req.params.surveyId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .post((req, res, next) => {
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null) {
+                    survey.questions.push(req.body);
+                    survey.save()
+                        .then((survey) => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(survey.questions);
+                        }, (err) => next(err));
+                }
+                else {
+                    err = new Error('Question ' + req.params.surveyId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .delete((req, res, next) => {
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null) {
+                    for (var i = (survey.questions.length - 1); i >= 0; i++) {
+                        id = survey.questions[i]._id;
+                        console.log(id);
+                        survey.questions.id(id).remove();
+                    }
+                    survey.save()
+                        .then((survey) => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(survey.questions);
+                        });
+                } else {
+                    err = new Error('Question ' + req.params.surveyId + ' Deleted');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    });
+
+// To perform operations on single id of any question of Survey by SurveyId
+surveyRouter.route('/:surveyId/questions/:questionId')
+    .get((req, res, next) => {
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null && survey.questions.id(req.params.questionId) != null) {
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(survey.questions.id(req.params.questionId));
+                }
+                else if (survey == null) {
+                    err = new Error('survey ' + req.params.surveyId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+                else {
+                    err = new Error('question ' + req.params.questionId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .put((req, res, next) => {
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null && survey.questions.id(req.params.questionId) != null) {
+                    if (req.body.questionText) {
+                        survey.questions.id(req.params.questionId).questionText = req.body.questionText;
+                    }
+                    if (req.body.questionType) {
+                        survey.questions.id(req.params.questionId).questionType = req.body.questionType;
+                    }
+                    survey.save()
+                        .then((survey) => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(survey.questions);
+                        }, (err) => next(err));
+                }
+                else if (survey == null) {
+                    err = new Error('survey ' + req.params.surveyId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+                else {
+                    err = new Error('Question ' + req.params.questionId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .delete((req, res, next) => {
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null && survey.questions.id(req.params.questionId) != null) {
+                    survey.questions.id(req.params.questionId).remove();
+                    survey.save()
+                        .then((survey) => {
+                            res.statusCode = 200;
+                            res.setHeader('Content-Type', 'application/json');
+                            res.json(survey.questions);
+                        }, (err) => next(err));
+                } else if (survey == null) {
+                    err = new Error('Survey ' + req.params.surveyId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+                else {
+                    err = new Error('Question ' + req.params.questionId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    });
+
+
+// To perform operations on questions of Survey by SurveyId
+surveyRouter.route('/:surveyId/assignees')
+    .get((req, res, next) => {
+        Survey.findById(req.params.surveyId)
+            .then((survey) => {
+                if (survey != null) {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(survey);
+                }
+                else {
+                    err = new Error('Question ' + req.params.surveyId + ' not found');
+                    err.status = 404;
+                    return next(err);
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .post((req, res, next) => {
+        var surveyId = req.params.surveyId;
+        var userArray = [];
+        var userId;
+        Survey.findById(surveyId)
+            .then((survey) => {
+                if (survey != null) {
+                    Users.find({ RishabhId: req.body.RishabhId })
+                        .then((user) => {
+                            user.map(user => {
+                                userId = user._id;
+                                userArray.push(userId);
+                            });
+                            console.log('user array =', userArray);
+                                Survey.find({  
+                                    $and: [
+                                        {"_id" : surveyId},
+                                        {"assignees._id" : {$in: userArray}}
+                                    ]   
+                                })
+                                .then((data) => {
+                                    console.log('survey data =', data);
+                                    if (data.length == 0) {
+                                        userArray.map(user => {
+                                            console.log(user);
+                                            survey.assignees.push(user._id)
+                                        })
+                                        survey.save()
+                                            .then((survey) => {
+                                                console.log(survey);
+                                                return res.status(200).send(survey);
+                                            }, (err) => next(err));
+                                    } else {
+                                        return res.status(500).send();
+                                    }
+                                }, (err) => next(err))
+                                .catch((err) => next(err));
+                        })
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+    })
+    .put((req, res, next) => {
+        var surveyId = req.params.surveyId;
+        var userArray = [];
+        var userId;
+        Survey.findById(surveyId)
+            .then((survey) => {
+                if (survey != null) {
+                    Users.find({ RishabhId: req.body.RishabhId })
+                        .then((user) => {
+                            user.map(user => {
+                                userId = user._id;
+                                userArray.push(userId);
+                            });
+                            console.log('user array =', userArray);
+                                Survey.update({  
+                                    $and: [
+                                        {"_id" : surveyId},
+                                        {$pull: {'assignees._id': {$in: userArray } } }, 
+                                        {multi: true}
+                                    ]   
+                                })
+                                .then((data) => {
+                                    if (data.length != 0) {
+                                        console.log(data);
+                                        userArray.map(user => {
+                                            console.log(user);
+                                            survey.assignees.remove(user._id);
+                                        })
+                                        survey.save()
+                                            .then((survey) => {
+                                                console.log(survey);
+                                                return res.status(200).send(survey);
+                                            }, (err) => next(err));
+                                    } else {
+                                        return res.status(500).send();
+                                    }
+                                }, (err) => next(err))
+                                .catch((err) => next(err));
+                        })
+                }
+            }, (err) => next(err))
+            .catch((err) => next(err));
+});
+
+surveyRouter.post('/username', (req, res, next) => {
+    userId= req.body.userId;
+    Users.find({ _id: userId})
+        .then((user) => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(user);
+        }, (err) => next(err))
+        .catch((err) => next(err));
+});
+
+
+surveyRouter.get('/data/:ownerID', (req, res, next) => {
+    Survey.find({ ownerID: req.params.ownerID })
+        .then((surveys) => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(surveys);
+        }, (err) => next(err))
+        .catch((err) => next(err));
+});
+
+
+surveyRouter.post('/postuserdata', (req, res, next) => {
+    rishabhId = req.body.RishabhId
+    console.log(rishabhId);
+    Users.find({ RishabhId: rishabhId })
+        .then((user, err) => {
+            if (user) {
+                return res.send(user);
+            } else {
+                return res.send(err);
+            }
+        })
+});
+
+
+module.exports = surveyRouter;
+
