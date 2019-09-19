@@ -62,7 +62,7 @@ module.exports = {
         var id = req.body.id;
         // connect to your database
         const { userId } = req.params;
-        Survey.find({ 'assignees._id': userId,'endDate' : { $gte :new Date()}}, async function (err, result) {
+        Survey.find({ 'assignees._id': userId }, async function (err, result) {
             if (err) console.log(err)
             else {
                 let assignees = result.map(x => x.assignees.find(x =>x._id ==userId));

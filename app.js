@@ -18,7 +18,7 @@ var surveyRouter = require('./routes/surveyRouter');
 
 var userrouter = require('./routes/userrouter');
 var routes = require('./routes/routes');
-
+var checkout= require('./public/javascripts/checkout');
 var app = express();
 app.use(cors({ Origin:'http://localhost:4200' })); 
 app.use(bodyparser.json());
@@ -47,7 +47,7 @@ app.use('/surveys', routes);
 app.use('/', indexRouter);
 app.use('/users', router);
 app.use('/survey',surveyRouter);
-
+app.use('/stripe', checkout)
 app.use('/sql',userrouter);
 
 // catch 404 and forward to error handler
