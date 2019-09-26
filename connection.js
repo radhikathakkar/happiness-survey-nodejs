@@ -1,12 +1,13 @@
+require('custom-env').env();
 var mongoose = require('mongoose');
-var url ="mongodb://172.16.7.101:27017/happiness-survey";
+var url = process.env.MONGO_URL;
 var sql = require('mssql');
 
 var config = {
-    user: "rspl_hr",
-    password: "rspl123#",
-    server: "RSDS004\\SS2008",
-    database: "RSPLPortal_QA_new"
+    user : process.env.DB_USER,
+    password : process.env.DB_PASS,
+    server: process.env.DB_SERVER,
+    database: process.env.DB_DATABASE
 };
 
 mongoose.connect(url,(err,res) => {

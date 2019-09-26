@@ -9,13 +9,16 @@ var config = {
     url: 'LDAP://172.16.7.1://rishabh.com',
     baseDN: 'dc=rishabh,dc=com',
     username: 'radhika.thakkar@rishabh.com',
-    password: 'r@dhIka1012',
+    password: 'r@dhIka1011',
     attributes: {
         user: ['cn', 'sn', 'givenName', 'department', 'dn', 'userPrincipalName', 'title']
     }
 }
 
 var ad = new ActiveDirectory(config);
+// var sAMAccountName = 'Parth.Soni';
+// var userPrincipalName = 'parth.soni@rishabh.com';
+// var dn = 'CN=Soni\\, Parth,OU=Users,DC=rishabh,DC=com';
 
 module.exports = {
 

@@ -1,3 +1,4 @@
+require('custom-env').env()
 var createError = require('http-errors');
 var express = require('express');
 var path = require('path');
@@ -5,20 +6,15 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var cors = require('cors');
 var bodyparser = require('body-parser');
-var passport = require('passport');
 var session = require('express-session');
-
 var mongoose = require('./connection');
-
-var passport = require('passport');
-var session = require('express-session');
 var indexRouter = require('./routes/index');
 var router = require('./routes/users');
 var surveyRouter = require('./routes/surveyRouter');
 
 var userrouter = require('./routes/userrouter');
 var routes = require('./routes/routes');
-var checkout= require('./public/javascripts/checkout');
+
 var app = express();
 app.use(cors({ Origin:'http://localhost:4200' })); 
 app.use(bodyparser.json());
@@ -38,16 +34,12 @@ app.use(session(
   })
 );
 
-
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(passport.initialize());
-app.use(passport.session());
 
 app.use('/surveys', routes);
 app.use('/', indexRouter);
 app.use('/users', router);
 app.use('/survey',surveyRouter);
-app.use('/stripe', checkout)
 app.use('/sql',userrouter);
 
 // catch 404 and forward to error handler

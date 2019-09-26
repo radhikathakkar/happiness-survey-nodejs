@@ -2,13 +2,19 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const Survey = require('../models/survey');
 const Users = require('../models/users');
+
+const nodemailer = require('nodemailer');
+const smtpTransport = require('nodemailer-smtp-transport');
+const smtp = require('smtp');
+
+
 const surveyRouter = express.Router();
 surveyRouter.use(bodyParser.json());
 
 // To perform operations on Survey 
 surveyRouter.route('/')
     .get((req, res, next) => {
-        Survey.find({'endDate' : { $gte :new Date()}})
+        Survey.find({ 'endDate': { $gte: new Date() } })
             .then((survey) => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
@@ -83,9 +89,9 @@ surveyRouter.route('/:surveyId/assignees')
         Survey.findById(req.params.surveyId)
             .then((survey) => {
                 if (survey != null) {
-                        res.statusCode = 200;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.json(survey.assignees);
+                    res.statusCode = 200;
+                    res.setHeader('Content-Type', 'application/json');
+                    res.json(survey.assignees);
                 } else {
                     err = new Error('Question ' + req.params.surveyId + ' not found');
                     err.status = 404;
@@ -96,8 +102,8 @@ surveyRouter.route('/:surveyId/assignees')
     });
 
 surveyRouter.post('/username', (req, res, next) => {
-    userId= req.body.userId;
-    Users.find({ _id: userId})
+    userId = req.body.userId;
+    Users.find({ _id: userId })
         .then((user) => {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
@@ -107,8 +113,8 @@ surveyRouter.post('/username', (req, res, next) => {
 });
 
 surveyRouter.post('/RishabhId', (req, res, next) => {
-    RishabhId= req.body.RishabhId;
-    Users.find({ RishabhId: RishabhId})
+    RishabhId = req.body.RishabhId;
+    Users.find({ RishabhId: RishabhId })
         .then((user) => {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
@@ -118,7 +124,7 @@ surveyRouter.post('/RishabhId', (req, res, next) => {
 });
 
 surveyRouter.get('/data/:ownerID', (req, res, next) => {
-    Survey.find({ ownerID: req.params.ownerID, 'startDate':{ $gte: new Date()} })
+    Survey.find({ ownerID: req.params.ownerID, 'startDate': { $gte: new Date() } })
         .then((surveys) => {
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
@@ -142,5 +148,6 @@ surveyRouter.post('/postuserdata', (req, res, next) => {
             }
         })
 });
+
 
 module.exports = surveyRouter;
