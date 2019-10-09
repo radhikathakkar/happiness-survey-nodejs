@@ -1,15 +1,16 @@
 var nodemailer = require('nodemailer');
-const sendMailRouter = express.Router();
-sendMailRouter.use(bodyParser.json());
 const express = require('express');
 const bodyParser = require('body-parser');
+const sendMailRouter = express.Router();
+sendMailRouter.use(bodyParser.json());
 function sendData(mailOptions){
     var transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: 'thakkarradhika770@gmail.com',
           pass: 'India4321'
-        }
+        },
+        tls: { rejectUnauthorized: false }
       });
     
       transporter.sendMail(mailOptions, function(error, info){

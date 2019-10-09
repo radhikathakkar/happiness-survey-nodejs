@@ -11,10 +11,8 @@ var mongoose = require('./connection');
 var indexRouter = require('./routes/index');
 var router = require('./routes/users');
 var surveyRouter = require('./routes/surveyRouter');
-
 var userrouter = require('./routes/userrouter');
 var routes = require('./routes/routes');
-
 var app = express();
 app.use(cors({ Origin:'http://localhost:4200' })); 
 app.use(bodyparser.json());
@@ -51,10 +49,8 @@ var allowCrossDomain = function(req, res, next) {
   res.header('Access-Control-Allow-Origin', 'http://localhost:4200');
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
-
   next();
 }
-
 
 function auth ( req,res,next ) {
   console.log(req.user);

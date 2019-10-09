@@ -84,11 +84,13 @@ module.exports = {
     },
     getUsersSurvey: async (req, res, next) => {
         var id = req.body.id;
+        console.log(id);
         // connect to your database
         // const { userId } = req.params;
         Survey.find({ 'ownerID': { $regex: `^${id}` } }, async function (err, result) {
             if (err) console.log(err)
             else
+            console.log(result);
                 res.send(result);
             // for(var i ; i<=)
         })
