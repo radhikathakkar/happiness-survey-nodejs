@@ -118,6 +118,7 @@ surveyRouter.post('/RishabhId', (req, res, next) => {
 });
 
 surveyRouter.get('/data/:ownerID', (req, res, next) => {
+    console.log(req.params.ownerID)
     Survey.find({ ownerID: req.params.ownerID, 'startDate':{ $gte: new Date()} })
         .then((surveys) => {
             res.statusCode = 200;
@@ -129,9 +130,11 @@ surveyRouter.get('/data/:ownerID', (req, res, next) => {
 
 surveyRouter.post('/postuserdata', (req, res, next) => {
     rishabhId = req.body.RishabhId
+    console.log(rishabhId)
     Users.find({ RishabhId: rishabhId })
         .then((user, err) => {
             if (user) {
+                console.log(user);
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
                 res.json(user);
